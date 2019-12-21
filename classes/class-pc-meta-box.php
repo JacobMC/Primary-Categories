@@ -1,22 +1,36 @@
 <?php
+namespace Primary_Categories\PC_Meta_Box;
 
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) exit;
+
+/**
+ * Class PC_Meta_Box
+ *
+ * Handles the primary categories meta box
+ *
+ * @package Primary_Categories\PC_Meta_Box
+ */
 class PC_Meta_Box {
-    
-    public function __construct() {
-        
-        add_action( 'add_meta_boxes', array( $this, 'pc_meta_box' ) );
-        
-        add_action( 'save_post', array( $this, 'pc_field_data' ) );
-        
+    /** @var null|PC_Meta_Box */
+    protected static $_instance = null;
+
+    /**
+     * Hook into WordPress
+     */
+    public function init() {
+        add_action( 'add_meta_boxes', [ $this, 'meta_box' ] );
+        add_action( 'save_post', [ $this, 'field_data' ] );
     }
-    
-    public function pc_meta_box() {
-        
+
+    /**
+     * Adds the primary category meta box
+     */
+    public function meta_box() {
         // Retrieve all post types and add meta box to all post types, including custom post types
     	$post_types = get_post_types();
     
     	foreach ( $post_types as $post_type ) {
-    
     		// Skip the "page" post type
     		if ( $post_type == 'page' ) {
     			continue;
@@ -25,18 +39,18 @@ class PC_Meta_Box {
     		add_meta_box (
     			'primary_category',
     			'Primary Category',
-    			array( $this, 'pc_meta_box_content' ),
+    			[ $this, 'meta_box_content' ],
     			$post_type,
     			'side',
     			'high'
     		);
-    
     	}
-    	
     }
-    
-    public function pc_meta_box_content() {
-        
+
+    /**
+     * Adds meta box content
+     */
+    public function meta_box_content() {
         global $post;
 
     	$primary_category = '';
@@ -62,21 +76,45 @@ class PC_Meta_Box {
     	$html .= '</select>';
     
     	echo $html;
-        
     }
-    
-    public function pc_field_data() {
-        
+
+    /**
+     * Handles saving meta box data
+     */
+    public function field_data() {
         global $post;
 
     	if ( isset( $_POST[ 'primary_category' ] ) ) {
-    
     		$primary_category = sanitize_text_field( $_POST[ 'primary_category' ] );
-    
     		update_post_meta( $post->ID, 'primary_category', $primary_category );
-    
     	}
-        
     }
-    
+
+    /**
+     * Ensures only one instance of PC_Meta_Box is loaded or can be loaded.
+     *
+     * @return PC_Meta_Box|null
+     * @since  1.0.0
+     *
+     */
+    public static function instance() {
+        if ( is_null( self::$_instance ) ) {
+            self::$_instance = new self();
+        }
+
+        return self::$_instance;
+    }
 }
+
+/**
+ * Global function
+ *
+ * @return PC_Meta_Box|null
+ * @since  1.0.0
+ *
+ */
+function pc_meta_box() {
+    return PC_Meta_Box::instance();
+}
+
+pc_meta_box()->init();
